@@ -26,8 +26,7 @@ class RoLicensePlate:
         
         # flags waiting to be set
         found_county = False
-        self.leading_zero = False
-        self.number_is_wrong = False
+        self.license_plate_is_red = False
         
         # extracting info from the input string
         for i in license_str:
@@ -40,24 +39,8 @@ class RoLicensePlate:
                 found_county = True
                 self.numbers += i
         
-        # setting flags
-        if len(self.numbers) > 0:  # we want to convert our numbers to int, so we have to have something to convert (len>0)
-            if self.numbers[0] == "0":
-                self.leading_zero = True
-            if len(self.numbers) > 1 and self.numbers[1] == "0" and self.leading_zero: # number is clearly wrong if it has 2 leading zeros
-                self.number_is_wrong = True
-            self.numbers = int(self.numbers)
-        
-    def __repr__(self): # aici mai trebuie vazut cum afisam numerele de 3 cifre pt B
-        numbers_repr = self.numbers
-        number_is_zero = (numbers_repr == 0)
-        if self.leading_zero: # if the number has a leading zero we will write it
-            numbers_repr = str(numbers_repr)
-            numbers_repr = "0" + numbers_repr
-        if self.number_is_wrong: # if the number has 2 leading zeros, then
-            if not number_is_zero: # we will write another 0, only if the number is not 0, else it would already have that 0 written
-                numbers_repr = "0" + numbers_repr
-        return f"RoLicensePlate county={self.county}, numbers={numbers_repr}, letters={self.letters}"
+    def __repr__(self):
+        return f"RoLicensePlate county={self.county}, numbers={self.numbers}, letters={self.letters}"
     
     def validate_county(self):
         county_str_length = len(self.county)
@@ -66,30 +49,51 @@ class RoLicensePlate:
         if county_str_length == 1: # if len = 1, then it has to be "B"
             if self.county != "B":
                 return False
-        else:                       # if len = 2, then the county code should be one of these
+        else:                       # if len = 2, then the county code should be one of these (including diplomatic plates)
             if self.county not in ["AB","AG","AR","BC","BH","BN","BR","BT","BV","BZ",
                                    "CJ","CL","CS","CT","CV","DB","DJ","GJ","GL","GR",
                                    "HD","HR","IF","IL","IS","MH","MM","MS","NT","OT",
-                                   "PH","SB","SJ","SM","SV","TL","TM","TR","VL","VN","VS"]:
+                                   "PH","SB","SJ","SM","SV","TL","TM","TR","VL","VN","VS",
+                                   "CD", "TC", "CO"]:
                 return False
         return True
     
     def validate_numbers(self):
-        numbers_str = str(self.numbers) # converting number back to string so we can operate with it in its real form (captured by camera)
-        if self.number_is_wrong: # if the number has 2 leading zeros it is clearly wrong
+        numbers_str = self.numbers
+        county_str = self.county
+        numbers_str_length = len(numbers_str)
+        letters_str_length = len(self.letters)
+    
+        if int(numbers_str) == 0:   # if the number is in [00, 000, 0000, 00000, 000000], then it is not valid
             return False
-        if self.leading_zero: # if it has only one leading zero, then we consider it as part of the number
-            numbers_str = "0" + numbers_str
-        numbers_str_length = len(numbers_str) # we take the length of the real number as shown on the license plate
-        if numbers_str_length > 3 or numbers_str_length < 2: # only len = 2 or len = 3 are fine
+        if numbers_str_length < 2 or numbers_str_length > 6:    # numbers have to have 2 to 6 digits 
             return False
-        if numbers_str_length == 3: # if len = 3, then it should only belong to the "B" county code, else it's wrong
-            if self.county != "B" or self.leading_zero:
+        if county_str in ["CD", "TC", "CO"]:    # if we have a diplomatic license plate
+            if numbers_str_length != 6:     # it must have 6 digits following the diplomatic code and the first three digits must be on of these and the last three digits must not begin with a 0
                 return False
-        return True
-    
+            elif numbers_str[:3] not in ["101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114",
+                                       "115", "116", "122", "123", "124", "125", "126", "127", "128", "130", "131", "134", "136", "138",
+                                       "141", "142", "146", "150", "152", "154", "155", "156", "157", "159", "165", "166", "167", "168",
+                                       "170", "183", "189", "191", "193", "205", "206", "207", "210", "211", "214", "216", "217", "220",
+                                       "222", "223", "226", "234"] or numbers_str[3] == '0':
+                return False
+        if numbers_str_length >= 3 and numbers_str_length <= 6: # we may have a red license plate here and we have to make sure it really is one
+            if numbers_str[0] == '0' and numbers_str[1] != '0' and county_str not in ["CD", "TC", "CO"] and letters_str_length == 0:     # a license plate is red only if these conditions are met
+                self.license_plate_is_red = True    # we set this flag because it is needed when we validate the letters
+                return True
+            if numbers_str_length == 3:     # if we have a 3-digit number, then it has to belong to the B county and not begin with 0 (e.g. 015 is not valid)
+                if county_str != 'B' or numbers_str[0] == '0':
+                    return False
+        return True     # here we basically check if the number is a 2-digit number which is correct in any form
+                
+            
     def validate_letters(self):
-        return len(self.letters) == 3 # only len = 3 is ok for every license plate
+        # only len = 3 is ok for every license plate, except diplomatic and red ones which don't have any letters at all
+        letters_str_length = len(self.letters)
+        if self.county in ["CD", "TC", "CO"] or self.license_plate_is_red:
+            return (letters_str_length == 0)
+        else:
+            return (letters_str_length == 3)
     
-    def validate_license_plate(self): # a license plate is valid only if each part of it is valid
+    def validate_license_plate(self):   # a license plate is valid only if each part of it is valid
         return self.validate_county() and self.validate_numbers() and self.validate_letters()
