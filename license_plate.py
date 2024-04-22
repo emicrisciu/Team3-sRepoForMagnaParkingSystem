@@ -90,10 +90,11 @@ class RoLicensePlate:
     def validate_letters(self):
         # only len = 3 is ok for every license plate, except diplomatic and red ones which don't have any letters at all
         letters_str_length = len(self.letters)
+        letters_str = self.letters
         if self.county in ["CD", "TC", "CO"] or self.license_plate_is_red:
             return (letters_str_length == 0)
         else:
-            return (letters_str_length == 3)
+            return (letters_str_length == 3 and letters_str[0] not in ["I", "O"] and letters_str not in ["III", "OOO"] and "Q" not in letters_str)
     
     def validate_license_plate(self):   # a license plate is valid only if each part of it is valid
         return self.validate_county() and self.validate_numbers() and self.validate_letters()
