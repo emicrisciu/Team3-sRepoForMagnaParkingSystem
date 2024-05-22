@@ -39,7 +39,8 @@ long getSensorDistance(int trigPin, int echoPin)
   delayMicroseconds(10); //keep the trigger on to generate pulse
   digitalWrite(trigPin, LOW);
   duration = pulseIn(echoPin, HIGH); //If pulse reached the receiver echoPin become high, then pulseIn() returns the time taken by the pulse to reach the receiver
-  distance = (duration/2) / 29.1; //we divide by 2 because the sound travel to the object and back, so the distance to the object is half the distance traveled by the sound
+  distance = (duration * .0343)/2; //we divide by 2 because the sound travel to the object and back, so the distance to the object is half the distance traveled by the sound
+  Serial.println(distance);
   return distance;
 }
 
@@ -178,85 +179,6 @@ void loop()
   }
   else
   {
-    if(sensor1 <= entryDistance) // dacă nu avem de a face cu puțin probabila situație în care fix deodată se solicită ambele bariere, atunci mergem mai departe
-    // și gestionăm situația când e solicitată doar intrarea în parcare la un moment de timp
-    {
-      if(parkingSpots > 0) // are sens să vorbim de intrarea în parcare doar atunci când mai există locuri libere
-      {
-        bool v1 = validarePrezenta(trigPin1, echoPin1);
-        valid = v1;
-
-        if(valid)
-        {
-          delay(300);
-          // se ridică bariera de la intrare
-          for (int angle = 0; angle <= 90; angle += 1)
-          {
-            servo1.write(angle);
-            delay(10);
-          }
-
-          // acum trebuie verificat dacă mașina trece de barieră
-          bool p2 = validareTrecereBariera(trigPin2, echoPin2);
-          presence = p2;
-
-          if(presence) // se ajunge aici doar dacă mașina a trecut deja pe sub bariera de la intrare
-          {
-            parkingSpots--; // asta înseamnă că trebuie să scădem numărul de locuri de parcare disponibile deoarece a avut loc o intrare validă în parcare
-            // se așteaptă ca mașina să se îndepărteze de barieră pentru a putea fi lăsată jos
-            time = 0;
-            sensor2 = getSensorDistance(trigPin2, echoPin2);
-            while(sensor2 < farThreshold || time < 100) // se iasă din while abia atunci când mașina e îndepărtată. Dacă cumva se mișcă mașina foarte rapid atunci se va sta 2 secunde datorită lui time
-            {
-              sensor2 = getSensorDistance(trigPin2, echoPin2);
-              time += 10;
-              delay(200);
-            }
-            delay(300);
-          }
-
-          // se coboară bariera
-          for (int angle = 90; angle >= 0; angle -= 1)
-          {
-            servo1.write(angle);
-            delay(10);
-          }
-
-          // actualizare stare LED-uri
-          if(parkingSpots > 0)
-          {
-            digitalWrite(greenLedPin, HIGH);
-            digitalWrite(redLedPin, LOW);
-          }
-          else
-          {
-            digitalWrite(greenLedPin, LOW);
-            digitalWrite(redLedPin, HIGH);
-          }
-
-          // afișăm pe ecranul LCD numărul actualizat de locuri libere
-          lcd.clear();
-          lcd.print("Locuri neocupate");
-          lcd.setCursor(7,1);
-          lcd.print(parkingSpots);
-        }
-        else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
-        {
-          delay(2000);
-        }
-      }
-      else // dacă parcarea este deja plină vom afișa un mesaj corespunzător
-      {
-        lcd.clear();
-        lcd.setCursor(1,0);
-        lcd.print("Parcarea este");
-        lcd.setCursor(5,1);
-        lcd.print("plina!");
-        delay(2000);
-      }
-    }
-    else
-    {
       if(sensor3 <= entryDistance) // în caz contrar, verificăm dacă se solicită bariera de la ieșire
       {
         bool v3 = validarePrezenta(trigPin3, echoPin3);
@@ -270,6 +192,14 @@ void loop()
           {
             servo2.write(angle);
             delay(10);
+          }
+
+           // ramanem in aceasta bucla pana cand masina se indeparteaza de senzor (fie catre parcare, fie catre exteriorul ei)
+          sensor3 = getSensorDistance(trigPin3, echoPin3);
+          while(sensor3 <= entryDistance)
+          {
+            sensor3 = getSensorDistance(trigPin3, echoPin3);
+            delay(500);
           }
 
           // acum trebuie verificat dacă mașina trece de barieră
@@ -289,13 +219,21 @@ void loop()
               delay(200);
             }
             delay(300);
-          }
 
-          // se coboară bariera
-          for (int angle = 90; angle >= 0; angle -= 1)
+            for (int angle = 90; angle >= 0; angle -= 1)
+            {
+              servo2.write(angle);
+              delay(10);
+            }
+          }
+          else
           {
-            servo2.write(angle);
-            delay(10);
+            // se coboară bariera
+            for (int angle = 90; angle >= 0; angle -= 1)
+            {
+              servo2.write(angle);
+              delay(10);
+            }
           }
 
           // actualizare stare LED-uri
@@ -321,7 +259,102 @@ void loop()
           delay(2000);
         }
       }
-    }
+      else
+      {
+        if(sensor1 <= entryDistance) // dacă nu avem de a face cu puțin probabila situație în care fix deodată se solicită ambele bariere, atunci mergem mai departe
+        // și gestionăm situația când e solicitată doar intrarea în parcare la un moment de timp
+        {
+          if(parkingSpots > 0) // are sens să vorbim de intrarea în parcare doar atunci când mai există locuri libere
+          {
+            bool v1 = validarePrezenta(trigPin1, echoPin1);
+            valid = v1;
+
+            if(valid)
+            {
+              delay(300);
+              // se ridică bariera de la intrare
+              for (int angle = 0; angle <= 90; angle += 1)
+              {
+                servo1.write(angle);
+                delay(10);
+              }
+
+              // ramanem in aceasta bucla pana cand masina se indeparteaza de senzor (fie catre parcare, fie catre exteriorul ei)
+              sensor1 = getSensorDistance(trigPin1, echoPin1);
+              while(sensor1 <= entryDistance)
+              {
+                sensor1 = getSensorDistance(trigPin1, echoPin1);
+                delay(500);
+              }
+
+              // acum trebuie verificat dacă mașina trece de barieră, validare ce ne indica in ce directie s-a deplasat masina
+              bool p2 = validareTrecereBariera(trigPin2, echoPin2);
+              presence = p2;
+
+              if(presence) // se ajunge aici doar dacă mașina a trecut deja pe sub bariera de la intrare
+              {
+                parkingSpots--; // asta înseamnă că trebuie să scădem numărul de locuri de parcare disponibile deoarece a avut loc o intrare validă în parcare
+                // se așteaptă ca mașina să se îndepărteze de barieră pentru a putea fi lăsată jos
+                time = 0;
+                sensor2 = getSensorDistance(trigPin2, echoPin2);
+                while(sensor2 < farThreshold || time < 100) // se iasă din while abia atunci când mașina e îndepărtată. Dacă cumva se mișcă mașina foarte rapid atunci se va sta 2 secunde datorită lui time
+                {
+                  sensor2 = getSensorDistance(trigPin2, echoPin2);
+                  time += 10;
+                  delay(200);
+                }
+                delay(300);
+                // se coboară bariera
+                for (int angle = 90; angle >= 0; angle -= 1)
+                {
+                  servo1.write(angle);
+                  delay(10);
+                }
+              }
+              else
+              {
+                // se coboară bariera
+                for (int angle = 90; angle >= 0; angle -= 1)
+                {
+                  servo1.write(angle);
+                  delay(10);
+                }
+              }
+
+              // actualizare stare LED-uri
+              if(parkingSpots > 0)
+              {
+                digitalWrite(greenLedPin, HIGH);
+                digitalWrite(redLedPin, LOW);
+              }
+              else
+              {
+                digitalWrite(greenLedPin, LOW);
+                digitalWrite(redLedPin, HIGH);
+              }
+
+              // afișăm pe ecranul LCD numărul actualizat de locuri libere
+              lcd.clear();
+              lcd.print("Locuri neocupate");
+              lcd.setCursor(7,1);
+              lcd.print(parkingSpots);
+            }
+            else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
+            {
+              delay(2000);
+            }
+          }
+          else // dacă parcarea este deja plină vom afișa un mesaj corespunzător
+          {
+            lcd.clear();
+            lcd.setCursor(1,0);
+            lcd.print("Parcarea este");
+            lcd.setCursor(5,1);
+            lcd.print("plina!");
+            delay(2000);
+          }
+        }
+      }
   }
   delay(100); // senzorii calculează distanțe la fiecare 100ms pentru a capta într-un timp cât mai apropiat de cel real o solicitare de ridicare a barierei
 }
