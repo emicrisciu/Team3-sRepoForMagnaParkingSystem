@@ -1,7 +1,2 @@
-cmdpip install ceva 
-fiecare proiect cu virtal environments
-
-pip install numpy 
-
-python -m venv .venv		-pt a face un environment
-.venv\Scripts\activate.bat	-pt a activa
+\n 
+/n
