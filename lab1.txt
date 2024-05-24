@@ -1,2 +1,1 @@
-\n 
-/n
+https://zetcode.com/db/mysqlc/
