@@ -44,36 +44,45 @@ long getSensorDistance(int trigPin, int echoPin)
   return distance;
 }
 
+unsigned long currentMillis = 0;
+unsigned long previousMillis = 0;
+
 bool validarePrezenta(int trigPin, int echoPin) // timp de 2 secunde se verifica daca intr-adevar avem o cerere de ridicare a barierei
 {
-  time = 0;
+  // time = 0;
   valid = true;
-  while(time < 200)
+  previousMillis = millis();
+  currentMillis = millis();
+  while(currentMillis - previousMillis < 2000)
   {
     if(getSensorDistance(trigPin, echoPin) > entryDistance)
     {
       valid = false;
       break;
     }
-    time += 10;
-    delay(100);
+    // time += 10;
+    // delay(100);
+    currentMillis = millis();
   }
   return valid;
 }
 
 bool validareTrecereBariera(int trigPin, int echoPin)
 {
-  time = 0;
+  // time = 0;
   presence = false;
-  while(time < 400)
+  previousMillis = millis();
+  currentMillis = millis();
+  while(currentMillis - previousMillis < 5000)
   {
     if(getSensorDistance(trigPin, echoPin) <= entryDistance)
     {
       presence = true;
       break;
     }
-    time += 10;
-    delay(100);
+    // time += 10;
+    // delay(100);
+    currentMillis = millis();
   }
   return presence;
 }
@@ -125,60 +134,60 @@ void loop()
 
   // verificăm mai multe cazuri aici
   // mai întâi verificăm posibilitatea ca exact în același moment de timp să se solicite ambele bariere (deci simultan efectiv)
-  if(sensor1 <= entryDistance && sensor3 <= entryDistance)
-  {
-    // trebuie să validăm că într-adevăr avem mașini la cele 2 bariere și nu a fost doar o apropiere întâmplătoare
-    bool v1 = validarePrezenta(trigPin1, echoPin1);
-    bool v3 = validarePrezenta(trigPin3, echoPin3);
-    valid = v1 && v3;
+  // if(sensor1 <= entryDistance && sensor3 <= entryDistance)
+  // {
+  //   // trebuie să validăm că într-adevăr avem mașini la cele 2 bariere și nu a fost doar o apropiere întâmplătoare
+  //   bool v1 = validarePrezenta(trigPin1, echoPin1);
+  //   bool v3 = validarePrezenta(trigPin3, echoPin3);
+  //   valid = v1 && v3;
 
-    if(valid) // după ce suntem siguri că se dorește ridicarea celor 2 bariere vom executa codul corespunzător acestui lucru
-    {
-      delay(300);
-      // se ridică barierele (fluent)
-      for(int angle = 0; angle <= 90; angle += 1)
-      {
-        servo1.write(angle);
-        servo2.write(angle);
-        delay(10);
-      }
+  //   if(valid) // după ce suntem siguri că se dorește ridicarea celor 2 bariere vom executa codul corespunzător acestui lucru
+  //   {
+  //     delay(300);
+  //     // se ridică barierele (fluent)
+  //     for(int angle = 0; angle <= 90; angle += 1)
+  //     {
+  //       servo1.write(angle);
+  //       servo2.write(angle);
+  //       delay(10);
+  //     }
       
-      // acum trebuie verificat dacă mașinile trec de cele 2 bariere
-      bool p2 = validareTrecereBariera(trigPin2, echoPin2);
-      bool p4 = validareTrecereBariera(trigPin4, echoPin4);
-      presence = p2 && p4;
+  //     // acum trebuie verificat dacă mașinile trec de cele 2 bariere
+  //     bool p2 = validareTrecereBariera(trigPin2, echoPin2);
+  //     bool p4 = validareTrecereBariera(trigPin4, echoPin4);
+  //     presence = p2 && p4;
 
-      if(presence) // se ajunge aici doar dacă ambele mașini au trecut deja pe sub barierele ridicate
-      {
-        // nu se întâmplă nimic cu contorul aici pt că practic se și intră și se și iasă deodată
-        // se așteaptă ca ambele mașini să se îndepărteze de bariere pentru a putea fi lăsate jos
-        time = 0;
-        sensor2 = getSensorDistance(trigPin2, echoPin2);
-        sensor4 = getSensorDistance(trigPin4, echoPin4);
-        while(sensor2 < farThreshold || sensor4 < farThreshold || time < 100) // se iasă din while abia atunci când ambele mașini sunt îndepărtate. dacă cumva se mișcă ambele mașini foarte rapid atunci se va sta 2 secunde datorită lui time
-        {
-          sensor2 = getSensorDistance(trigPin2, echoPin2);
-          sensor4 = getSensorDistance(trigPin4, echoPin4);
-          time += 10;
-          delay(200);
-        }
-        delay(300);
-      }
-      // se coboară barierele simultan
-      for (int angle = 90; angle >= 0; angle -= 1)
-      {
-        servo1.write(angle);
-        servo2.write(angle);
-        delay(10);
-      }
-    }
-    else // dacă validările eșuează stopăm întreg sistemul pt 2 secunde
-    {
-      delay(2000);
-    }
-  }
-  else
-  {
+  //     if(presence) // se ajunge aici doar dacă ambele mașini au trecut deja pe sub barierele ridicate
+  //     {
+  //       // nu se întâmplă nimic cu contorul aici pt că practic se și intră și se și iasă deodată
+  //       // se așteaptă ca ambele mașini să se îndepărteze de bariere pentru a putea fi lăsate jos
+  //       time = 0;
+  //       sensor2 = getSensorDistance(trigPin2, echoPin2);
+  //       sensor4 = getSensorDistance(trigPin4, echoPin4);
+  //       while(sensor2 < farThreshold || sensor4 < farThreshold || time < 100) // se iasă din while abia atunci când ambele mașini sunt îndepărtate. dacă cumva se mișcă ambele mașini foarte rapid atunci se va sta 2 secunde datorită lui time
+  //       {
+  //         sensor2 = getSensorDistance(trigPin2, echoPin2);
+  //         sensor4 = getSensorDistance(trigPin4, echoPin4);
+  //         time += 10;
+  //         delay(200);
+  //       }
+  //       delay(300);
+  //     }
+  //     // se coboară barierele simultan
+  //     for (int angle = 90; angle >= 0; angle -= 1)
+  //     {
+  //       servo1.write(angle);
+  //       servo2.write(angle);
+  //       delay(10);
+  //     }
+  //   }
+  //   else // dacă validările eșuează stopăm întreg sistemul pt 2 secunde
+  //   {
+  //     delay(2000);
+  //   }
+  // }
+  // else
+  // {
       if(sensor3 <= entryDistance) // în caz contrar, verificăm dacă se solicită bariera de la ieșire
       {
         bool v3 = validarePrezenta(trigPin3, echoPin3);
@@ -355,6 +364,6 @@ void loop()
           }
         }
       }
-  }
+  // }
   delay(100); // senzorii calculează distanțe la fiecare 100ms pentru a capta într-un timp cât mai apropiat de cel real o solicitare de ridicare a barierei
 }
