@@ -11,7 +11,7 @@
 const char* scriptPath="/home/team3/Desktop/proiect/numar_imagine.py";
 FILE* file;
 // Message structure
-typedef struct {
+typedef struct message_t{
     char* message;
     struct message_t* next;
 } message_t;
@@ -32,13 +32,14 @@ void runPythonScript(const char* scriptPath) {
     // Open a pipe to execute the Python script
     FILE* pipe = popen(command, "r");
     if (!pipe) {
-    printf("Error opening pipe to Python script.\n");
+        printf("Error opening pipe to Python script.\n");
+        return;
     }
     char buffer[256];
     int result = 0;
     // Read the output of the Python script
     if (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-    printf("Python script returned: %s\n", buffer);
+        printf("Python script returned: %s\n", buffer);
     //pclose(pipe);
     //return buffer;
     }
@@ -51,48 +52,48 @@ void runPythonScript(const char* scriptPath) {
 // Functions for message handling
 void push(message_t** head, char* message) {
     message_t* new_node = (message_t*) malloc(sizeof(message_t));
-    new_node->message = message;
+    new_node->message = strdup(message);
     new_node->next = NULL;
     if(*head ==NULL)
     {
-    (*head) = new_node;
-}
-else{
-    message_t* temp =*head;
-    while(temp->next !=NULL){
-        temp=temp->next;
-}
-temp->next =new_node;
-}
+        *head = new_node;
+    }
+    else{
+        message_t* temp =*head;
+        while(temp->next !=NULL){
+            temp=temp->next;
+        }
+        temp->next = new_node;
+    }
 }
 
 char* pop(message_t** head) {
     if (*head == NULL) {
         return NULL;
     }
-    char* message = (*head)->message;
     message_t* temp = *head;
-    (*head) = (*head)->next;
+    char* message = temp->message;
+    *head = temp->next;
     free(temp);
     return message;
 }
 
 void append(message_t** head, char* message) {
     message_t* new_node = (message_t*) malloc(sizeof(message_t));
-    new_node->message = message;
+    new_node->message = strdup(message);
     new_node->next = NULL;
     if (*head == NULL) {
-        (*head) = new_node;
+        *head = new_node;
         return;
     }
     else{
         
         message_t* temp = *head;
-    while (temp->next != NULL) {
-        temp = temp->next;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = new_node;
     }
-    temp->next = new_node;
-}
 }
 
 // Thread function for sending messages to Arduino
@@ -148,7 +149,7 @@ void* receive_thread_func(void* arg) {
                 }
                     
                 pthread_mutex_lock(&mutex);
-                append(&receive_list, strdup(buffer));
+                append(&receive_list, buffer); // strdup(buffer)
                 pthread_mutex_unlock(&mutex);
                 pthread_mutex_lock(&mutex);
                 push(&send_stack, buffer);
