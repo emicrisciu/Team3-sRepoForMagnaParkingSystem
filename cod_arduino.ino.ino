@@ -31,6 +31,8 @@ int time = 0;
 bool valid = true;
 bool presence = false;
 
+bool camera = true;
+
 long getSensorDistance(int trigPin, int echoPin)
 {
   digitalWrite(trigPin, LOW);
@@ -229,14 +231,26 @@ void loop()
 
             if(valid)
             {
-             
-             
-               Serial.print("CAMERA\n");
+
+              if(camera)
+              {
+                camera=false;
+                lcd.clear();
+                lcd.setCursor(0,3);
+                lcd.print("false");
+                delay(500);
+                Serial.print("CAMERA\n");
+              }
+       
+              
+                  
+         
              
              command = Serial.readStringUntil('\n');
              command.trim();
              if(command.equals("TRUE"))
              {
+              
               // se ridică bariera de la intrare
               for (int angle = 0; angle <= 90; angle += 1)
               {
@@ -275,6 +289,11 @@ void loop()
                   servo1.write(angle);
                   delay(10);
                 }
+                camera=true;
+                lcd.clear();
+                lcd.setCursor(0,3);
+                lcd.print("true1");
+                delay(500);
               }
               else
               {
@@ -284,6 +303,12 @@ void loop()
                   servo1.write(angle);
                   delay(10);
                 }
+                camera=true;
+                lcd.clear();
+                lcd.setCursor(0,3);
+                lcd.print("true2");
+                delay(500);
+                
               }
 
               // actualizare stare LED-uri
@@ -303,6 +328,14 @@ void loop()
               lcd.print("Locuri neocupate");
               lcd.setCursor(7,1);
               lcd.print(parkingSpots);
+              }
+              else
+              {
+                camera=true;
+                lcd.clear();
+                lcd.setCursor(0,3);
+                lcd.print("truef");
+                delay(500);
               }
             }
             else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
