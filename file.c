@@ -96,6 +96,19 @@ void append(message_t** head, char* message) {
     }
 }
 
+void clear_stack(message_t** head)
+{
+    pthread_mutex_lock(&mutex);
+    while(*head != NULL)
+    {
+        message_t* temp = *head;
+        *head = (*head)->next;
+        free(temp->message);
+        free(temp);
+    }
+    pthread_mutex_unlock(&mutex);
+}
+
 // Thread function for sending messages to Arduino
 void* send_thread_func(void* arg) {
     
@@ -109,6 +122,7 @@ void* send_thread_func(void* arg) {
             serialPutchar(arduino_fd, '\n');
             printf("Sent message to Arduino: %s\n", message);
             free(message);
+            clear_stack(&send_stack);
         }
     }
     return NULL;
@@ -128,6 +142,9 @@ void* receive_thread_func(void* arg) {
                 printf("Received message from Arduino: %s\n", buffer);
                 if(strcmp(buffer,"CAMERA")==0)
                 {
+                    //pthread_mutex_lock(&mutex);
+                    //push(&send_stack, "RECEPTIONAT");
+                    //pthread_mutex_unlock(&mutex);
                     runPythonScript(scriptPath);
                     file=fopen("fisier.txt", "r");
                     if(file==NULL)
@@ -141,7 +158,7 @@ void* receive_thread_func(void* arg) {
                         exit(-1);
                     }
                     fclose(file);
-                }   
+                }
                 else
                 {
                     strcpy(buffer,"");
@@ -152,6 +169,7 @@ void* receive_thread_func(void* arg) {
                 append(&receive_list, buffer); // strdup(buffer)
                 pthread_mutex_unlock(&mutex);
                 pthread_mutex_lock(&mutex);
+                //clear_stack(&send_stack);
                 push(&send_stack, buffer);
                 pthread_mutex_unlock(&mutex);
                 index=0;
@@ -209,6 +227,9 @@ int main() {
     pthread_join(send_thread, NULL);
     pthread_join(receive_thread, NULL);
     //pthread_join(generate_thread, NULL);
+    
+    clear_stack(&send_stack);
+    clear_stack(&receive_list);
 
     // Clean up the mutex and serial port
     pthread_mutex_destroy(&mutex);

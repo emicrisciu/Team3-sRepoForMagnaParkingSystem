@@ -25,6 +25,11 @@ image = cv2.imread('/home/team3/Desktop/proiect/poza_masina.jpg')
 image= cv2.resize(image,(620,480) )
 
 
+#aici incepem sa modificam codul ca sa imparta in 2 jum
+#height, width, _ = image.shape
+#left_half = image[:, :width // 2]
+#right_half = image[:, width // 2:]
+
 
 
 gray= cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -117,7 +122,8 @@ if rez=="TRUE":
 	subprocess.call(["gcc", "/home/team3/Desktop/proiect/baza_de_date.c"])
 	
 	
-	
+#cv2.imshow('LEFT',left_half)
+#cv2.imshow('RIGHT', right_half)	
 		
 
 #cv2.imshow('poza contur', image)

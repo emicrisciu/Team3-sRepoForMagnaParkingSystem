@@ -14,6 +14,9 @@ const int echoPin3 = 5;
 const int trigPin4 = 4;
 const int echoPin4 = 2;
 const int servoPin2 = 3;
+const int debounce_time = 7000;
+
+unsigned long lastSentTime = 0;
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 Servo servo1, servo2;
@@ -31,7 +34,7 @@ int time = 0;
 bool valid = true;
 bool presence = false;
 
-bool camera = true;
+//bool camera = true;
 
 long getSensorDistance(int trigPin, int echoPin)
 {
@@ -221,6 +224,7 @@ void loop()
       }
       else
       {
+        //Serial.print("DELETE\n");
         if(sensor1 <= entryDistance) // dacă nu avem de a face cu puțin probabila situație în care fix deodată se solicită ambele bariere, atunci mergem mai departe
         // și gestionăm situația când e solicitată doar intrarea în parcare la un moment de timp
         {
@@ -231,17 +235,14 @@ void loop()
 
             if(valid)
             {
-
-              if(camera)
-              {
-                camera=false;
-                lcd.clear();
-                lcd.setCursor(0,3);
-                lcd.print("false");
-                delay(500);
-                Serial.print("CAMERA\n");
-              }
        
+
+
+              if(millis() - lastSentTime > debounce_time)
+              {
+                Serial.print("CAMERA\n");
+                lastSentTime = millis();
+              }
               
                   
          
@@ -289,11 +290,7 @@ void loop()
                   servo1.write(angle);
                   delay(10);
                 }
-                camera=true;
-                lcd.clear();
-                lcd.setCursor(0,3);
-                lcd.print("true1");
-                delay(500);
+                //camera=true;
               }
               else
               {
@@ -303,11 +300,8 @@ void loop()
                   servo1.write(angle);
                   delay(10);
                 }
-                camera=true;
-                lcd.clear();
-                lcd.setCursor(0,3);
-                lcd.print("true2");
-                delay(500);
+                //Serial.print("DELETE\n");
+                //camera=true;
                 
               }
 
@@ -329,14 +323,11 @@ void loop()
               lcd.setCursor(7,1);
               lcd.print(parkingSpots);
               }
-              else
-              {
-                camera=true;
-                lcd.clear();
-                lcd.setCursor(0,3);
-                lcd.print("truef");
-                delay(500);
-              }
+              //else
+              //{
+                //camera=true;
+                //Serial.print("DELETE\n");
+              //}
             }
             else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
             {
