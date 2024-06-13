@@ -5,10 +5,12 @@
 #include <wiringPi.h>
 #include <wiringSerial.h>
 #include <errno.h>
+#include <mysql/mysql.h>
 
 #define BUFFER_SIZE 256
 
-const char* scriptPath="/home/team3/Desktop/proiect/numar_imagine.py";
+const char* scriptPathRight="/home/team3/Desktop/proiect/right_image_proc.py";
+const char* scriptPathLeft="/home/team3/Desktop/proiect/left_image_proc.py";
 FILE* file;
 // Message structure
 typedef struct message_t{
@@ -24,6 +26,110 @@ message_t* receive_list = NULL;
 
 // Mutex to ensure thread-safe access to stacks/lists
 pthread_mutex_t mutex;
+
+void finish_with_error(MYSQL *con)
+{
+  fprintf(stderr, "%s\n", mysql_error(con));
+  mysql_close(con);
+  exit(1);
+}
+
+//functie BD
+void BDI(char nr_inmat[] )
+{
+    
+
+  char comanda_sql[100];
+  comanda_sql[0]='\0';
+
+  //printf("Hello world");
+  //printf("MySQL client version: %s\n", mysql_get_client_info());
+  
+    MYSQL *con = mysql_init(NULL);
+
+  if (con == NULL)
+  {
+      fprintf(stderr, "%s\n", mysql_error(con));
+      exit(1);
+  }
+
+  if (mysql_real_connect(con, "localhost", "team3", "team3",
+          "PARCARE", 0, NULL, 0) == NULL)
+  {
+      finish_with_error(con);
+  }
+  
+  strcpy(comanda_sql,"SELECT count(*) FROM MASINI WHERE NR_INMATRICULARE='");
+  strcat(comanda_sql,nr_inmat);
+  strcat(comanda_sql,"'");
+  
+  if (mysql_query(con, comanda_sql)) {
+      finish_with_error(con);
+  }
+  
+  MYSQL_RES *result = mysql_store_result(con);
+  
+  if(result==NULL)
+  {
+		finish_with_error(con);
+  }
+  int num_fields = mysql_num_fields(result);
+  MYSQL_ROW row;
+  row=mysql_fetch_row(result);
+  //printf("ceva:%s",row[0] ? row[0] : "NULL");
+
+  if(row[0]!=0)
+  {
+    strcat(comanda_sql,"INSERT INTO MASINI(NR_INMATRICULARE) VALUES('");
+    strcat(comanda_sql,nr_inmat);
+    strcat(comanda_sql,"')");
+    if (mysql_query(con, comanda_sql)) {
+      finish_with_error(con);
+    }
+  }
+
+  mysql_close(con);
+    
+    
+}
+
+void BDD(char nr_inmat[] )
+{
+    
+
+  char comanda_sql[100];
+  comanda_sql[0]='\0';
+
+  //printf("Hello world");
+  //printf("MySQL client version: %s\n", mysql_get_client_info());
+  
+    MYSQL *con = mysql_init(NULL);
+
+  if (con == NULL)
+  {
+      fprintf(stderr, "%s\n", mysql_error(con));
+      exit(1);
+  }
+
+  if (mysql_real_connect(con, "localhost", "team3", "team3",
+          "PARCARE", 0, NULL, 0) == NULL)
+  {
+      finish_with_error(con);
+  }
+  
+  strcat(comanda_sql,"DELETE FROM MASINI WHERE NR_INMATRICULARE='");
+  strcat(comanda_sql,nr_inmat);
+  strcat(comanda_sql,"'");
+
+  if (mysql_query(con, comanda_sql)) {
+      finish_with_error(con);
+  }
+
+  mysql_close(con);
+    
+    
+}
+
 
 // aici am copiat din prezentare codul pt rulare python
 void runPythonScript(const char* scriptPath) {
@@ -133,6 +239,7 @@ void* receive_thread_func(void* arg) {
      
     int arduino_fd = *(int*) arg;
     char buffer[BUFFER_SIZE];
+    char nr_inmat[BUFFER_SIZE];
     int index=0;
     while (1) {
         if(serialDataAvail(arduino_fd)){
@@ -140,12 +247,12 @@ void* receive_thread_func(void* arg) {
             if(ch == '\n'){
                 buffer[index] = '\0';
                 printf("Received message from Arduino: %s\n", buffer);
-                if(strcmp(buffer,"CAMERA")==0)
+                if(strcmp(buffer,"CAMERAR")==0)
                 {
                     //pthread_mutex_lock(&mutex);
                     //push(&send_stack, "RECEPTIONAT");
                     //pthread_mutex_unlock(&mutex);
-                    runPythonScript(scriptPath);
+                    runPythonScript(scriptPathRight);
                     file=fopen("fisier.txt", "r");
                     if(file==NULL)
                     {
@@ -157,13 +264,60 @@ void* receive_thread_func(void* arg) {
                         printf("Eroare la scrierea in buffer");
                         exit(-1);
                     }
+                    if(fgets(nr_inmat, sizeof(nr_inmat), file)==NULL) 
+                    {
+                        printf("Eroare la scrierea in buffer");
+                        exit(-1);
+                    }
+                    
                     fclose(file);
+                    
                 }
                 else
                 {
-                    strcpy(buffer,"");
-                    printf("Received message from Arduino: %s\n", buffer);
+                    if(strcmp(buffer, "CAMERAL")==0)
+                    {
+                        runPythonScript(scriptPathLeft);
+                        file=fopen("fisierOut.txt", "r");
+                        if(file==NULL)
+                        {
+                            printf("Nu s-a putut deschide fisierul");
+                            exit(-1);
+                        }
+                        if(fgets(buffer, sizeof(buffer), file)==NULL) // vedem cu buffer ce facem si il trimitem catre BD
+                        {
+                            printf("Eroare la scrierea in buffer");
+                            exit(-1);
+                        }
+                        if(fgets(nr_inmat, sizeof(nr_inmat), file)==NULL) 
+                        {
+                            printf("Eroare la scrierea in buffer");
+                            exit(-1);
+                        }
+                        fclose(file);
+                    }
+                    else
+                    {
+                        if(strcmp(buffer,"BDI")==0)
+                        {
+                            BDI(nr_inmat);
+                        }
+                        else
+                        {
+                            if(strcmp(buffer,"BDD")==0)
+                            {
+                                BDD(nr_inmat);
+                            }
+                             else
+                            {
+                                strcpy(buffer,"");
+                                printf("Received message from Arduino: %s\n", buffer);
+                            }
+                        }
+                    }
+                   
                 }
+                
                     
                 pthread_mutex_lock(&mutex);
                 append(&receive_list, buffer); // strdup(buffer)
