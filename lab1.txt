@@ -1,1 +1,3 @@
-https://zetcode.com/db/mysqlc/
+cd /home/team3/Desktop/proiect/
+gcc -o file file.c -lwiringPi -lmysqlclient
+./file
