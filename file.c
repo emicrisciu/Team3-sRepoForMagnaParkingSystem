@@ -76,11 +76,11 @@ void BDI(char nr_inmat[] )
   int num_fields = mysql_num_fields(result);
   MYSQL_ROW row;
   row=mysql_fetch_row(result);
-  //printf("ceva:%s",row[0] ? row[0] : "NULL");
+  printf("ceva:%s",row[0] ? row[0] : "NULL");
 
-  if(row[0]!=0)
+  if(row[0]==0 && strcmp(nr_inmat,"FALSE")!=0)
   {
-    strcat(comanda_sql,"INSERT INTO MASINI(NR_INMATRICULARE) VALUES('");
+    strcpy(comanda_sql,"INSERT INTO MASINI(NR_INMATRICULARE) VALUES('");
     strcat(comanda_sql,nr_inmat);
     strcat(comanda_sql,"')");
     if (mysql_query(con, comanda_sql)) {

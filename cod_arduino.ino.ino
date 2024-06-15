@@ -3,20 +3,20 @@
 #include <Servo.h>
 
 const int greenLedPin = 13;
-const int redLedPin = 12;
-const int trigPin1 = 11;
-const int echoPin1 = 10;
+const int redLedPin = 10;
+const int trigPin1 = 4;
+const int echoPin1 = 2;
 const int servoPin1 = 9;
-const int trigPin2 = 8;
-const int echoPin2 = 7;
-const int trigPin3 = 6;
-const int echoPin3 = 5;
-const int trigPin4 = 4;
-const int echoPin4 = 2;
+const int trigPin2 = 6;
+const int echoPin2 = 5;
+const int trigPin3 = 8;
+const int echoPin3 = 7;
+const int trigPin4 = 12;
+const int echoPin4 = 11;
 const int servoPin2 = 3;
-const int debounce_time = 7000;
+const int debounce_time = 12000;
 
-unsigned long lastSentTime = 0;
+unsigned long lastSentTimeL = 0, lastSentTimeR = 0;
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 Servo servo1, servo2;
@@ -147,6 +147,19 @@ void loop()
 
         if(valid)
         {
+
+          if(millis() - lastSentTimeL > debounce_time)
+          {
+            Serial.print("CAMERAL\n");
+            lastSentTimeL = millis();
+          }
+
+          command = Serial.readStringUntil('\n');
+          command.trim();
+          if(command.equals("TRUE"))
+          {
+            
+          
           // se ridică bariera de la ieșire
           for (int angle = 0; angle <= 90; angle += 1)
           {
@@ -185,7 +198,9 @@ void loop()
               servo2.write(angle);
               delay(10);
             }
+            Serial.print("BDD\n");
           }
+          
           else
           {
             // se coboară bariera
@@ -213,6 +228,7 @@ void loop()
           lcd.print("Locuri neocupate");
           lcd.setCursor(7,1);
           lcd.print(parkingSpots);
+          }
         }
         else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
         {
@@ -238,10 +254,10 @@ void loop()
        
 
 
-              if(millis() - lastSentTime > debounce_time)
+              if(millis() - lastSentTimeR > debounce_time)
               {
-                Serial.print("CAMERA\n");
-                lastSentTime = millis();
+                Serial.print("CAMERAR\n");
+                lastSentTimeR = millis();
               }
               
                   
@@ -290,6 +306,7 @@ void loop()
                   servo1.write(angle);
                   delay(10);
                 }
+                Serial.print("BDI\n");
                 //camera=true;
               }
               else
