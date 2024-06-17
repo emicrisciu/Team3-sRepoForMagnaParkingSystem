@@ -21,7 +21,7 @@ unsigned long lastSentTimeL = 0, lastSentTimeR = 0;
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 Servo servo1, servo2;
 
-int parkingSpots = 5; // numărul de locuri de parcare prestabilit
+int parkingSpots = 4; // numărul de locuri de parcare prestabilit
 int simultan = 0; // flag folosit pentru a indica prezența unei situații când două mașini doresc utilizarea barierei simultan
 
 int entryDistance = 10; // când o mașină se află la o distanță mai mică decât acest prag față de senzor, atunci este considerată suficient de aproape de barieră pentru a o deschide
@@ -229,14 +229,18 @@ void loop()
           lcd.setCursor(7,1);
           lcd.print(parkingSpots);
           }
-        }
-        else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
-        {
-          lcd.clear();
+          else
+          {
+            if(command.equals("FALSE"))
+          {
+            lcd.clear();
           lcd.setCursor(2,0);
           lcd.print("Iesire interzisa");
-          delay(2000);
+          delay(1000);
+          }
+          }
         }
+        
       }
       else
       {
@@ -340,18 +344,19 @@ void loop()
               lcd.setCursor(7,1);
               lcd.print(parkingSpots);
               }
-              //else
-              //{
-                //camera=true;
-                //Serial.print("DELETE\n");
-              //}
+              else
+          {
+            
+            if(command.equals("FALSE"))
+          {
+            lcd.clear();
+          lcd.setCursor(3,0);
+          lcd.print("Acces interzis");
+          delay(1000);
+          }
+          }
             }
-            else // dacă validarea eșuează stopăm întreg sistemul pt 2 secunde
-            {
-              lcd.clear();
-              lcd.print("Acces interzis");
-              delay(2000);
-            }
+            
           }
           else // dacă parcarea este deja plină vom afișa un mesaj corespunzător
           {
